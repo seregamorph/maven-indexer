@@ -50,7 +50,7 @@ public final class Record
 
         public T coerce( final Object object )
         {
-            return (T) proto.cast( object );
+            return proto.cast( object );
         }
 
         public String getName()
