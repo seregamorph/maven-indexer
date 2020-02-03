@@ -44,7 +44,7 @@ final class TrackingLockFactory
     TrackingLockFactory( final LockFactory delegate )
     {
         this.delegate = checkNotNull( delegate );
-        this.emittedLocks = Collections.newSetFromMap( new ConcurrentHashMap<TrackingLock, Boolean>() );
+        this.emittedLocks = Collections.newSetFromMap( new ConcurrentHashMap<>() );
     }
 
     Set<? extends Lock> getEmittedLocks( String name )
