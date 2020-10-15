@@ -84,6 +84,18 @@ under the License.
       <artifactId>spring-jdbc</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>mysql</groupId>
+      <artifactId>mysql-connector-java</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.protobuf</groupId>
+          <artifactId>protobuf-java</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+
       <!-- For search app in general -->
       <dependency>
         <groupId>org.slf4j</groupId>

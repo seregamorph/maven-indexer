@@ -20,15 +20,18 @@ package org.apache.maven.indexer.examples;
  */
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
@@ -76,6 +79,10 @@ import org.codehaus.plexus.util.StringUtils;
 import org.eclipse.aether.util.version.GenericVersionScheme;
 import org.eclipse.aether.version.InvalidVersionSpecificationException;
 import org.eclipse.aether.version.Version;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
+import org.springframework.jdbc.datasource.SmartDataSource;
 
 /**
  * Collection of some use cases.
@@ -122,8 +129,7 @@ public class BasicUsageExample
     }
 
     public void perform(String[] args)
-        throws IOException, ComponentLookupException, InvalidVersionSpecificationException
-    {
+            throws IOException, ComponentLookupException, InvalidVersionSpecificationException, SQLException {
         // Files where local cache is (if any) and Lucene Index should be located
         File centralLocalCache = new File( "data/central-cache" );
         File centralIndexDir = new File( "data/central-index" );
@@ -214,8 +220,11 @@ public class BasicUsageExample
         if (Arrays.asList(args).contains("-e"))
         {
             final IndexSearcher searcher = centralContext.acquireIndexSearcher();
-            try (FileWriter fw = new FileWriter("all-artifacts1.txt")) {
-                PrintWriter pw = new PrintWriter(fw);
+            try (Connection conn = DriverManager.getConnection("jdbc:mysql://127.0.0.1:3306/indexer", "indexer", "indexer")) {
+            //try (FileWriter fw = new FileWriter("all-artifacts1.txt")) {
+                //PrintWriter pw = new PrintWriter(fw);
+                conn.setAutoCommit(false);
+                JdbcTemplate jdbc = jdbc(conn);
                 final IndexReader ir = searcher.getIndexReader();
                 Bits liveDocs = MultiFields.getLiveDocs( ir );
                 exit: for ( int i = 0; i < ir.maxDoc(); i++ )
@@ -229,40 +238,64 @@ public class BasicUsageExample
                             nullCounter++;
                         } else {
                             //
-                            if (++counter % 100000 == 0) {
+                            if (++counter % 1000 == 0) {
                                 System.out.println("counter = " + counter);
+                                conn.commit();
                             }
 
                             if ("hamcrest-more-matchers".equals(ai.getArtifactId())) {
                                 System.out.println(ai);
                             }
-                            if (ai.getFileName() != null || ai.getMd5() != null
-                                    || !"central".equals(ai.getRepository()) || ai.getPath() != null
-                                    || ai.getRemoteUrl() != null || !"central-context".equals(ai.getContext())) {
+                            //String id = ai.getGroupId() + ":" + ai.getArtifactId() + ":" + ai.getVersion()
+                            //        + (ai.getClassifier() == null ? "" : ":" + ai.getClassifier());
+                            //pw.println(id);
+                            try {
+                                jdbc.update(
+                                        "INSERT INTO gav("
+                                                + "group_id, "
+                                                + "artifact_id, "
+                                                + "version, "
+                                                + "classifier, "
+                                                + "file_extension, "
+                                                + "artifact_version, "
+                                                + "last_modified, "
+                                                + "sha1, "
+                                                + "sources_exists, "
+                                                + "javadoc_exists, "
+                                                + "signature_exists, "
+                                                + "size, "
+                                                + "packaging, "
+                                                + "name, "
+                                                + "description"
+                                                + ") VALUES ("
+                                                + "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+                                                + ")",
+                                        ai.getGroupId(),
+                                        ai.getArtifactId(),
+                                        ai.getVersion(),
+                                        Objects.toString(ai.getClassifier(), ""),
+                                        Objects.toString(ai.getFileExtension(), ""),
+                                        Objects.toString(ai.getArtifactVersion(), null),
+                                        new Timestamp(ai.getLastModified()),
+                                        ai.getSha1(),
+                                        Integer.parseInt(ai.getSourcesExists().toString()),
+                                        Integer.parseInt(ai.getJavadocExists().toString()),
+                                        Integer.parseInt(ai.getSignatureExists().toString()),
+                                        ai.getSize(),
+                                        ai.getPackaging(),
+                                        ai.getName(),
+                                        maxLength(ai.getDescription(), 16384)
+                                );
+                            } catch (DataIntegrityViolationException e) {
+                                e.printStackTrace();
                                 System.out.println(ai);
+                                return;
                             }
-                            if (ai.getPrefix() != null || ai.getGoals() != null || ai.getBundleVersion() != null
-                                    || ai.getBundleSymbolicName() != null || ai.getBundleExportPackage() != null
-                                    || ai.getBundleExportService() != null) {
-                                System.out.println(ai);
-                            }
-                            if (ai.getBundleDescription() != null || ai.getSha256() != null
-                                    || (ai.getAttributes() != null && !ai.getAttributes().isEmpty())
-                                    || (ai.getMatchHighlights() != null && !ai.getMatchHighlights().isEmpty())
-                                    //|| ai.getFields() != null
-                            ) {
-                                System.out.println(ai);
-                            }
-                            String id = ai.getGroupId() + ":" + ai.getArtifactId() + ":" + ai.getVersion()
-                                    + (ai.getClassifier() == null ? "" : ":" + ai.getClassifier());
-                            pw.println(id);
                         }
-//                        if (++counter > 1000) {
-//                            break exit;
-//                        }
                     }
                 }
-                pw.flush();
+                //pw.flush();
+                conn.commit();
             }
             finally
             {
@@ -427,5 +460,22 @@ public class BasicUsageExample
         System.out.println( "------" );
         System.out.println( "Total record hits: " + response.getTotalHitsCount() );
         System.out.println();
+    }
+
+    static JdbcTemplate jdbc(Connection connection) {
+        SmartDataSource ds = smartDataSource(connection);
+        return new JdbcTemplate(ds);
+    }
+
+    static SmartDataSource smartDataSource(Connection connection) {
+        return new SingleConnectionDataSource(connection, false);
+    }
+
+    private static String maxLength(String str, int maxLength) {
+        if (str == null || str.length() < maxLength) {
+            return str;
+        } else {
+            return str.substring(0, maxLength);
+        }
     }
 }
