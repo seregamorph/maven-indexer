@@ -288,7 +288,7 @@ public class BasicUsageExample
                                 };
                                 batchArgs.add(batch);
 
-                                if (++counter % 500 == 0) {
+                                if (++counter % 1000 == 0) {
                                     jdbc.batchUpdate(sql, batchArgs);
                                     batchArgs.clear();
                                     System.out.println("counter = " + counter);

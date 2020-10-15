@@ -6,7 +6,7 @@ CREATE TABLE gav(
     file_extension varchar(64) not null,
     artifact_version varchar(64) null,
     last_modified datetime,
-    sha1 varchar(40),
+    sha1 varchar(128),
     sources_exists int not null,
     javadoc_exists int not null,
     signature_exists int not null,
