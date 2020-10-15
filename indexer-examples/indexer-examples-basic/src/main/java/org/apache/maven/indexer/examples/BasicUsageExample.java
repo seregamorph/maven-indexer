@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
@@ -124,8 +125,8 @@ public class BasicUsageExample
         throws IOException, ComponentLookupException, InvalidVersionSpecificationException
     {
         // Files where local cache is (if any) and Lucene Index should be located
-        File centralLocalCache = new File( "target/central-cache" );
-        File centralIndexDir = new File( "target/central-index" );
+        File centralLocalCache = new File( "data/central-cache" );
+        File centralIndexDir = new File( "data/central-index" );
 
         // Creators we want to use (search for fields it defines)
         List<IndexCreator> indexers = new ArrayList<>();
@@ -149,6 +150,8 @@ public class BasicUsageExample
             System.out.println( "This might take a while on first run, so please be patient!" );
             // Create ResourceFetcher implementation to be used with IndexUpdateRequest
             // Here, we use Wagon based one as shorthand, but all we need is a ResourceFetcher implementation
+            final AtomicLong downloaded = new AtomicLong(0);
+            final AtomicLong nextReport = new AtomicLong(0);
             TransferListener listener = new AbstractTransferListener()
             {
                 @Override
@@ -160,6 +163,11 @@ public class BasicUsageExample
                 @Override
                 public void transferProgress(TransferEvent transferEvent, byte[] buffer, int length )
                 {
+                    long total = downloaded.addAndGet(length);
+                    if (total > nextReport.get()) {
+                        System.out.println(nextReport.get() + " bytes");
+                        nextReport.addAndGet(10_000_000);
+                    }
                 }
 
                 @Override
@@ -206,7 +214,7 @@ public class BasicUsageExample
         if (Arrays.asList(args).contains("-e"))
         {
             final IndexSearcher searcher = centralContext.acquireIndexSearcher();
-            try (FileWriter fw = new FileWriter("all-artifacts.txt")) {
+            try (FileWriter fw = new FileWriter("all-artifacts1.txt")) {
                 PrintWriter pw = new PrintWriter(fw);
                 final IndexReader ir = searcher.getIndexReader();
                 Bits liveDocs = MultiFields.getLiveDocs( ir );
@@ -220,8 +228,30 @@ public class BasicUsageExample
                             IndexUtils.constructArtifactInfo( doc, centralContext );
                             nullCounter++;
                         } else {
-                            if (++counter % 10000 == 0) {
+                            //
+                            if (++counter % 100000 == 0) {
                                 System.out.println("counter = " + counter);
+                            }
+
+                            if ("hamcrest-more-matchers".equals(ai.getArtifactId())) {
+                                System.out.println(ai);
+                            }
+                            if (ai.getFileName() != null || ai.getMd5() != null
+                                    || !"central".equals(ai.getRepository()) || ai.getPath() != null
+                                    || ai.getRemoteUrl() != null || !"central-context".equals(ai.getContext())) {
+                                System.out.println(ai);
+                            }
+                            if (ai.getPrefix() != null || ai.getGoals() != null || ai.getBundleVersion() != null
+                                    || ai.getBundleSymbolicName() != null || ai.getBundleExportPackage() != null
+                                    || ai.getBundleExportService() != null) {
+                                System.out.println(ai);
+                            }
+                            if (ai.getBundleDescription() != null || ai.getSha256() != null
+                                    || (ai.getAttributes() != null && !ai.getAttributes().isEmpty())
+                                    || (ai.getMatchHighlights() != null && !ai.getMatchHighlights().isEmpty())
+                                    //|| ai.getFields() != null
+                            ) {
+                                System.out.println(ai);
                             }
                             String id = ai.getGroupId() + ":" + ai.getArtifactId() + ":" + ai.getVersion()
                                     + (ai.getClassifier() == null ? "" : ":" + ai.getClassifier());

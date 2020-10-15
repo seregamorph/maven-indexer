@@ -13,5 +13,5 @@ services:
       - MYSQL_DATABASE=indexer
       - MYSQL_ALLOW_EMPTY_PASSWORD=true
     volumes:
-      - /home/ubuntu/indexer/mysql-data:/var/lib/mysql
+      - ../../indexer-mysql-data:/var/lib/mysql
       - ./mysql.cnf:/etc/mysql/conf.d/indexer.cnf:ro
