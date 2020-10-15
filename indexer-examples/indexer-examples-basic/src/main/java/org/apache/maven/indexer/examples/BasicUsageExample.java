@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
@@ -220,7 +221,7 @@ public class BasicUsageExample
         if (Arrays.asList(args).contains("-e"))
         {
             final IndexSearcher searcher = centralContext.acquireIndexSearcher();
-            String connUrl = "jdbc:mysql://127.0.0.1:3306/indexer?useUnicode=true&amp;characterEncoding=UTF-8";
+            String connUrl = "jdbc:mysql://127.0.0.1:3306/indexer?useUnicode=true&characterEncoding=UTF-8";
             try (Connection conn = DriverManager.getConnection(connUrl, "indexer", "indexer")) {
             //try (FileWriter fw = new FileWriter("all-artifacts1.txt")) {
                 //PrintWriter pw = new PrintWriter(fw);
@@ -291,7 +292,7 @@ public class BasicUsageExample
                                 };
                                 batchArgs.add(batch);
 
-                                if (++counter % 1000 == 0) {
+                                if (++counter % 100 == 0) {
                                     jdbc.batchUpdate(sql, batchArgs);
                                     batchArgs.clear();
                                     System.out.println("counter = " + counter);
@@ -300,6 +301,9 @@ public class BasicUsageExample
                             } catch (DataIntegrityViolationException e) {
                                 e.printStackTrace();
                                 System.out.println(ai);
+                                System.out.println(batchArgs.stream()
+                                        .map(Arrays::toString)
+                                        .collect(Collectors.joining("\n")));
                                 return;
                             }
                         }
