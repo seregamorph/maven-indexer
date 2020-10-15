@@ -19,6 +19,16 @@ package org.apache.maven.indexer.examples;
  * under the License.
  */
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
@@ -66,14 +76,6 @@ import org.eclipse.aether.util.version.GenericVersionScheme;
 import org.eclipse.aether.version.InvalidVersionSpecificationException;
 import org.eclipse.aether.version.Version;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-
 /**
  * Collection of some use cases.
  */
@@ -83,7 +85,7 @@ public class BasicUsageExample
         throws Exception
     {
         final BasicUsageExample basicUsageExample = new BasicUsageExample();
-        basicUsageExample.perform();
+        basicUsageExample.perform(args);
     }
 
     // ==
@@ -118,7 +120,7 @@ public class BasicUsageExample
 
     }
 
-    public void perform()
+    public void perform(String[] args)
         throws IOException, ComponentLookupException, InvalidVersionSpecificationException
     {
         // Files where local cache is (if any) and Lucene Index should be located
@@ -141,7 +143,7 @@ public class BasicUsageExample
         // since this block will always emit at least one HTTP GET. Central indexes are updated once a week, but
         // other index sources might have different index publishing frequency.
         // Preferred frequency is once a week.
-        if ( true )
+        if (Arrays.asList(args).contains("-f"))
         {
             System.out.println( "Updating Index..." );
             System.out.println( "This might take a while on first run, so please be patient!" );
@@ -149,18 +151,21 @@ public class BasicUsageExample
             // Here, we use Wagon based one as shorthand, but all we need is a ResourceFetcher implementation
             TransferListener listener = new AbstractTransferListener()
             {
-                public void transferStarted( TransferEvent transferEvent )
+                @Override
+                public void transferStarted(TransferEvent transferEvent )
                 {
                     System.out.print( "  Downloading " + transferEvent.getResource().getName() );
                 }
 
-                public void transferProgress( TransferEvent transferEvent, byte[] buffer, int length )
+                @Override
+                public void transferProgress(TransferEvent transferEvent, byte[] buffer, int length )
                 {
                 }
 
-                public void transferCompleted( TransferEvent transferEvent )
+                @Override
+                public void transferCompleted(TransferEvent transferEvent )
                 {
-                    System.out.println( " - Done" );
+                    System.out.println( " - Done" + " Local file " + transferEvent.getLocalFile());
                 }
             };
             ResourceFetcher resourceFetcher = new WagonHelper.WagonFetcher( httpWagon, listener, null, null );
@@ -196,29 +201,49 @@ public class BasicUsageExample
         // dump all the GAVs
         // NOTE: will not actually execute do this below, is too long to do (Central is HUGE), but is here as code
         // example
-        if ( false )
+        int counter = 0;
+        int nullCounter = 0;
+        if (Arrays.asList(args).contains("-e"))
         {
             final IndexSearcher searcher = centralContext.acquireIndexSearcher();
-            try
-            {
+            try (FileWriter fw = new FileWriter("all-artifacts.txt")) {
+                PrintWriter pw = new PrintWriter(fw);
                 final IndexReader ir = searcher.getIndexReader();
                 Bits liveDocs = MultiFields.getLiveDocs( ir );
-                for ( int i = 0; i < ir.maxDoc(); i++ )
+                exit: for ( int i = 0; i < ir.maxDoc(); i++ )
                 {
                     if ( liveDocs == null || liveDocs.get( i ) )
                     {
                         final Document doc = ir.document( i );
                         final ArtifactInfo ai = IndexUtils.constructArtifactInfo( doc, centralContext );
-                        System.out.println( ai.getGroupId() + ":" + ai.getArtifactId() + ":" + ai.getVersion() + ":"
-                                                + ai.getClassifier() + " (sha1=" + ai.getSha1() + ")" );
+                        if (ai == null) {
+                            IndexUtils.constructArtifactInfo( doc, centralContext );
+                            nullCounter++;
+                        } else {
+                            if (++counter % 10000 == 0) {
+                                System.out.println("counter = " + counter);
+                            }
+                            String id = ai.getGroupId() + ":" + ai.getArtifactId() + ":" + ai.getVersion()
+                                    + (ai.getClassifier() == null ? "" : ":" + ai.getClassifier());
+                            pw.println(id);
+                        }
+//                        if (++counter > 1000) {
+//                            break exit;
+//                        }
                     }
                 }
+                pw.flush();
             }
             finally
             {
                 centralContext.releaseIndexSearcher( searcher );
             }
         }
+
+        System.out.println("nulls: " + nullCounter);
+        System.out.println("total counter: " + counter);
+
+        if (true) return;
 
         // ====
         // Case:
@@ -248,7 +273,8 @@ public class BasicUsageExample
         // construct the filter to express "V greater than"
         final ArtifactInfoFilter versionFilter = new ArtifactInfoFilter()
         {
-            public boolean accepts( final IndexingContext ctx, final ArtifactInfo ai )
+            @Override
+            public boolean accepts(final IndexingContext ctx, final ArtifactInfo ai )
             {
                 try
                 {
