@@ -1,0 +1,19 @@
+[mysqld]
+lower_case_table_names=1
+max_allowed_packet=512M
+key_buffer_size=1G
+init-connect='SET NAMES utf8'
+character-set-server = utf8
+character-set-filesystem = utf8
+collation-server = utf8_general_ci
+sql_mode=
+
+[mysqldump]
+max_allowed_packet=512M
+
+[client]
+default-character-set = utf8
+
+[mysql]
+default-character-set = utf8
+

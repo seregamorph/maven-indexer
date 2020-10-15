@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  indexer-mysql:
+    image: mysql:5.7
+    container_name: indexer-mysql
+    restart: unless-stopped
+    ports:
+      - 3306:3306
+    environment:
+      - MYSQL_USER=indexer
+      - MYSQL_PASSWORD=indexer
+      - MYSQL_DATABASE=indexer
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+    volumes:
+      - /home/ubuntu/indexer/mysql-data:/var/lib/mysql
+      - ./mysql.cnf:/etc/mysql/conf.d/indexer.cnf:ro
