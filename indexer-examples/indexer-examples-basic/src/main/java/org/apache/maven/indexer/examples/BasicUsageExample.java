@@ -220,7 +220,8 @@ public class BasicUsageExample
         if (Arrays.asList(args).contains("-e"))
         {
             final IndexSearcher searcher = centralContext.acquireIndexSearcher();
-            try (Connection conn = DriverManager.getConnection("jdbc:mysql://127.0.0.1:3306/indexer", "indexer", "indexer")) {
+            String connUrl = "jdbc:mysql://127.0.0.1:3306/indexer?useUnicode=true&amp;characterEncoding=UTF-8";
+            try (Connection conn = DriverManager.getConnection(connUrl, "indexer", "indexer")) {
             //try (FileWriter fw = new FileWriter("all-artifacts1.txt")) {
                 //PrintWriter pw = new PrintWriter(fw);
                 conn.setAutoCommit(false);
