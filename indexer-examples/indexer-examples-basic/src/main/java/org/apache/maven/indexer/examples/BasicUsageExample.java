@@ -225,8 +225,32 @@ public class BasicUsageExample
                 //PrintWriter pw = new PrintWriter(fw);
                 conn.setAutoCommit(false);
                 JdbcTemplate jdbc = jdbc(conn);
+                List<Object[]> batchArgs = new ArrayList<>();
                 final IndexReader ir = searcher.getIndexReader();
                 Bits liveDocs = MultiFields.getLiveDocs( ir );
+
+                String sql =
+                        "INSERT INTO gav("
+                                + "group_id, "
+                                + "artifact_id, "
+                                + "version, "
+                                + "classifier, "
+                                + "file_extension, "
+                                + "artifact_version, "
+                                + "last_modified, "
+                                + "sha1, "
+                                + "sources_exists, "
+                                + "javadoc_exists, "
+                                + "signature_exists, "
+                                + "size, "
+                                + "packaging, "
+                                + "name, "
+                                + "description"
+                                + ") VALUES ("
+                                + "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+                                + ")"
+                        ;
+
                 exit: for ( int i = 0; i < ir.maxDoc(); i++ )
                 {
                     if ( liveDocs == null || liveDocs.get( i ) )
@@ -238,38 +262,14 @@ public class BasicUsageExample
                             nullCounter++;
                         } else {
                             //
-                            if (++counter % 1000 == 0) {
-                                System.out.println("counter = " + counter);
-                                conn.commit();
-                            }
-
-                            if ("hamcrest-more-matchers".equals(ai.getArtifactId())) {
-                                System.out.println(ai);
-                            }
+//                            if ("hamcrest-more-matchers".equals(ai.getArtifactId())) {
+//                                System.out.println(ai);
+//                            }
                             //String id = ai.getGroupId() + ":" + ai.getArtifactId() + ":" + ai.getVersion()
                             //        + (ai.getClassifier() == null ? "" : ":" + ai.getClassifier());
                             //pw.println(id);
                             try {
-                                jdbc.update(
-                                        "INSERT INTO gav("
-                                                + "group_id, "
-                                                + "artifact_id, "
-                                                + "version, "
-                                                + "classifier, "
-                                                + "file_extension, "
-                                                + "artifact_version, "
-                                                + "last_modified, "
-                                                + "sha1, "
-                                                + "sources_exists, "
-                                                + "javadoc_exists, "
-                                                + "signature_exists, "
-                                                + "size, "
-                                                + "packaging, "
-                                                + "name, "
-                                                + "description"
-                                                + ") VALUES ("
-                                                + "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-                                                + ")",
+                                Object batch[] = {
                                         ai.getGroupId(),
                                         ai.getArtifactId(),
                                         ai.getVersion(),
@@ -285,7 +285,15 @@ public class BasicUsageExample
                                         ai.getPackaging(),
                                         ai.getName(),
                                         maxLength(ai.getDescription(), 16384)
-                                );
+                                };
+                                batchArgs.add(batch);
+
+                                if (++counter % 500 == 0) {
+                                    jdbc.batchUpdate(sql, batchArgs);
+                                    batchArgs.clear();
+                                    System.out.println("counter = " + counter);
+                                    conn.commit();
+                                }
                             } catch (DataIntegrityViolationException e) {
                                 e.printStackTrace();
                                 System.out.println(ai);
@@ -295,6 +303,7 @@ public class BasicUsageExample
                     }
                 }
                 //pw.flush();
+                jdbc.batchUpdate(sql, batchArgs);
                 conn.commit();
             }
             finally
