@@ -1,19 +1,23 @@
 CREATE TABLE gav(
+    uinfo varchar(256) not null,
     group_id varchar(128) not null,
     artifact_id varchar(128) not null,
     version varchar(128) not null,
     classifier varchar(128) not null,
     file_extension varchar(64) not null,
     artifact_version varchar(64) null,
-    last_modified datetime,
-    sha1 varchar(128),
+    last_modified datetime not null,
+    # there are records longer than 40 chars
+    sha1 varchar(128) null,
     sources_exists int not null,
     javadoc_exists int not null,
     signature_exists int not null,
     size bigint not null,
     packaging varchar(128) null,
     name varchar(256),
-    description varchar(16384),
-    primary key (group_id, artifact_id, version, classifier, file_extension)
+    description varchar(16384)
+#     primary key (group_id, artifact_id, version, classifier, file_extension)
 ) engine=InnoDB;
+
+# create index gav_primary on gav(group_id, artifact_id, version, classifier, file_extension);
 

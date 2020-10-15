@@ -231,6 +231,7 @@ public class BasicUsageExample
 
                 String sql =
                         "INSERT INTO gav("
+                                + "uinfo, "
                                 + "group_id, "
                                 + "artifact_id, "
                                 + "version, "
@@ -247,7 +248,7 @@ public class BasicUsageExample
                                 + "name, "
                                 + "description"
                                 + ") VALUES ("
-                                + "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+                                + "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
                                 + ")"
                         ;
 
@@ -270,6 +271,7 @@ public class BasicUsageExample
                             //pw.println(id);
                             try {
                                 Object batch[] = {
+                                        ai.getUinfo(),
                                         ai.getGroupId(),
                                         ai.getArtifactId(),
                                         ai.getVersion(),
