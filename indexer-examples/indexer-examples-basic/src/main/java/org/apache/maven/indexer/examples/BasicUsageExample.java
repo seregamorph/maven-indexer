@@ -254,7 +254,8 @@ public class BasicUsageExample
                                 + ")"
                         ;
 
-                exit: for ( int i = 0; i < ir.maxDoc(); i++ )
+                int maxDoc = ir.maxDoc();
+                for ( int i = 0; i < maxDoc; i++ )
                 {
                     if ( liveDocs == null || liveDocs.get( i ) )
                     {
@@ -264,7 +265,6 @@ public class BasicUsageExample
                             IndexUtils.constructArtifactInfo( doc, centralContext );
                             nullCounter++;
                         } else {
-                            //
 //                            if ("hamcrest-more-matchers".equals(ai.getArtifactId())) {
 //                                System.out.println(ai);
 //                            }
@@ -295,7 +295,8 @@ public class BasicUsageExample
                                 if (++counter % 100 == 0) {
                                     jdbc.batchUpdate(sql, batchArgs);
                                     batchArgs.clear();
-                                    System.out.println("counter = " + counter);
+                                    int percent = 100 * counter / maxDoc;
+                                    System.out.printf("Handled %d records (%d %%)\r", counter, percent);
                                     conn.commit();
                                 }
                             } catch (DataIntegrityViolationException e) {
@@ -319,6 +320,7 @@ public class BasicUsageExample
             }
         }
 
+        System.out.println();
         System.out.println("nulls: " + nullCounter);
         System.out.println("total counter: " + counter);
 
