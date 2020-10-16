@@ -288,7 +288,7 @@ public class BasicUsageExample
                                         ai.getSize(),
                                         ai.getPackaging(),
                                         ai.getName(),
-                                        maxLength(ai.getDescription(), 16384)
+                                        ai.getDescription()
                                 };
                                 batchArgs.add(batch);
 
@@ -485,13 +485,5 @@ public class BasicUsageExample
 
     static SmartDataSource smartDataSource(Connection connection) {
         return new SingleConnectionDataSource(connection, false);
-    }
-
-    private static String maxLength(String str, int maxLength) {
-        if (str == null || str.length() < maxLength) {
-            return str;
-        } else {
-            return str.substring(0, maxLength);
-        }
     }
 }

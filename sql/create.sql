@@ -1,11 +1,13 @@
 CREATE TABLE gav(
-    uinfo varchar(256) not null,
+    uinfo varchar(256) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+
     group_id varchar(128) not null,
     artifact_id varchar(128) not null,
     version varchar(128) not null,
     classifier varchar(128) not null,
     file_extension varchar(64) not null,
-    artifact_version varchar(64) null,
+
+    artifact_version varchar(128) null,
     last_modified datetime not null,
     # there are records longer than 40 chars
     sha1 varchar(128) null,
@@ -16,8 +18,11 @@ CREATE TABLE gav(
     packaging varchar(128) null,
     name varchar(256),
     description varchar(16384)
-#     primary key (group_id, artifact_id, version, classifier, file_extension)
 ) engine=InnoDB;
 
-# create index gav_primary on gav(group_id, artifact_id, version, classifier, file_extension);
+-- note: this index cannot be unique
+create index gav_primary on gav(group_id, artifact_id, version, classifier, file_extension);
+
+-- note: this index cannot be unique
+create index gav_uinfo on gav(uinfo);
 
