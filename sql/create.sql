@@ -1,16 +1,17 @@
 CREATE TABLE gav(
+    -- case sensitive
     uinfo varchar(256) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
 
     group_id varchar(128) not null,
     artifact_id varchar(128) not null,
     version varchar(128) not null,
     classifier varchar(128) not null,
-    file_extension varchar(64) not null,
+    file_extension varchar(128) not null,
 
     artifact_version varchar(128) null,
     last_modified datetime not null,
-    # there are records longer than 40 chars
-    sha1 varchar(128) null,
+    -- there are records longer than 40 chars, we replace it with NULL
+    sha1 varchar(40) null,
     sources_exists int not null,
     javadoc_exists int not null,
     signature_exists int not null,

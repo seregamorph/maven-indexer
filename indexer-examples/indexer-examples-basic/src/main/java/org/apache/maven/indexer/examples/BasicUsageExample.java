@@ -272,6 +272,11 @@ public class BasicUsageExample
                             //        + (ai.getClassifier() == null ? "" : ":" + ai.getClassifier());
                             //pw.println(id);
                             try {
+                                String sha1 = ai.getSha1();
+                                if (sha1 != null && sha1.length() > 40) {
+                                    // invalid records
+                                    sha1 = null;
+                                }
                                 Object batch[] = {
                                         ai.getUinfo(),
                                         ai.getGroupId(),
@@ -281,7 +286,7 @@ public class BasicUsageExample
                                         Objects.toString(ai.getFileExtension(), ""),
                                         Objects.toString(ai.getArtifactVersion(), null),
                                         new Timestamp(ai.getLastModified()),
-                                        ai.getSha1(),
+                                        sha1,
                                         Integer.parseInt(ai.getSourcesExists().toString()),
                                         Integer.parseInt(ai.getJavadocExists().toString()),
                                         Integer.parseInt(ai.getSignatureExists().toString()),
@@ -292,7 +297,7 @@ public class BasicUsageExample
                                 };
                                 batchArgs.add(batch);
 
-                                if (++counter % 100 == 0) {
+                                if (++counter % 50 == 0) {
                                     jdbc.batchUpdate(sql, batchArgs);
                                     batchArgs.clear();
                                     int percent = 100 * counter / maxDoc;
